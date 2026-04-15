@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>质押挖矿 — FairPad</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    :root{--bg:#0a0a0f;--surface:#111118;--border:#1e1e2e;--accent:#f0b429;--accent2:#e55b4d;--text:#e8e8f0;--muted:#6b6b80;--green:#22c55e;--radius:12px;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;}
+
+    /* NAV */
+    nav{display:flex;align-items:center;justify-content:space-between;padding:18px 40px;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(10,10,15,.92);backdrop-filter:blur(12px);z-index:100;}
+    .logo{font-size:1.5rem;font-weight:800;letter-spacing:-1px;text-decoration:none;color:var(--text);}
+    .logo span{color:var(--accent);}
+    .nav-links{display:flex;gap:32px;}
+    .nav-links a{color:var(--muted);text-decoration:none;font-size:.9rem;font-weight:700;transition:color .2s;}
+    .nav-links a:hover,.nav-links a.active{color:var(--text);}
+    .connect-btn{background:var(--accent);color:#000;border:none;padding:10px 22px;border-radius:8px;font-family:'Space Mono',monospace;font-size:.8rem;cursor:pointer;font-weight:700;transition:opacity .2s;}
+    .connect-btn:hover{opacity:.85;}
+
+    /* PAGE */
+    .page-wrap{max-width:1100px;margin:0 auto;padding:60px 40px 80px;}
+    .page-title{font-size:2.4rem;font-weight:800;margin-bottom:8px;}
+    .page-sub{color:var(--muted);margin-bottom:48px;}
+
+    /* SEARCH */
+    .search-bar{display:flex;gap:12px;margin-bottom:40px;}
+    .search-bar input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;color:var(--text);font-family:'Syne',sans-serif;font-size:.9rem;outline:none;transition:border-color .2s;}
+    .search-bar input:focus{border-color:var(--accent);}
+    .search-bar input::placeholder{color:var(--muted);}
+    .search-bar button{background:var(--accent);color:#000;border:none;padding:12px 28px;border-radius:8px;font-family:'Space Mono',monospace;font-weight:700;cursor:pointer;transition:opacity .2s;}
+    .search-bar button:hover{opacity:.85;}
+
+    /* POOLS */
+    .section-title{font-size:1.2rem;font-weight:800;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+    .pools-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:24px;}
+    .pool-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;transition:border-color .2s,transform .2s;}
+    .pool-card:hover{border-color:rgba(240,180,41,0.35);transform:translateY(-3px);}
+    .pool-header{display:flex;align-items:center;gap:14px;margin-bottom:20px;}
+    .pool-avatar{width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:800;color:#000;flex-shrink:0;}
+    .pool-name{font-size:1.05rem;font-weight:800;}
+    .pool-symbol{font-family:'Space Mono',monospace;color:var(--muted);font-size:.78rem;margin-top:2px;}
+    .pool-stats{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;}
+    .stat-label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;}
+    .stat-val{font-family:'Space Mono',monospace;font-weight:700;font-size:.9rem;}
+    .stat-val.hi{color:var(--accent);}
+    .progress-bar{height:3px;background:var(--border);border-radius:4px;margin-bottom:18px;overflow:hidden;}
+    .progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:4px;}
+    .pool-actions{display:flex;gap:8px;}
+    .btn-sm{flex:1;padding:9px 6px;border-radius:8px;font-family:'Space Mono',monospace;font-size:.75rem;font-weight:700;cursor:pointer;border:none;transition:opacity .2s;}
+    .btn-sm:hover{opacity:.82;}
+    .btn-stake{background:var(--accent);color:#000;}
+    .btn-claim{background:rgba(34,197,94,0.12);color:var(--green);border:1px solid rgba(34,197,94,0.3)!important;}
+    .btn-unstake{background:rgba(255,255,255,0.04);color:var(--muted);border:1px solid var(--border)!important;}
+    .btn-emergency{background:rgba(229,91,77,0.1);color:var(--accent2);border:1px solid rgba(229,91,77,0.25)!important;}
+
+    /* EMPTY */
+    .empty-state{text-align:center;padding:80px 20px;color:var(--muted);grid-column:1/-1;}
+    .empty-state .icon{font-size:3rem;margin-bottom:16px;}
+    .empty-state p{font-size:.95rem;}
+
+    /* MODAL */
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(6px);z-index:1000;align-items:center;justify-content:center;}
+    .modal-overlay.active{display:flex;}
+    .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:36px;max-width:420px;width:90%;position:relative;}
+    .modal-close{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer;}
+    .modal h3{font-size:1.25rem;font-weight:800;margin-bottom:6px;}
+    .modal-sub{color:var(--muted);font-size:.85rem;margin-bottom:24px;}
+    .modal-balance{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:.85rem;color:var(--muted);}
+    .modal-balance span{color:var(--accent);font-family:'Space Mono',monospace;font-weight:700;}
+    .input-wrap{position:relative;margin-bottom:6px;}
+    .input-wrap input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 60px 12px 14px;color:var(--text);font-size:.9rem;font-family:'Syne',sans-serif;outline:none;transition:border-color .2s;}
+    .input-wrap input:focus{border-color:var(--accent);}
+    .input-max{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:rgba(240,180,41,0.15);color:var(--accent);border:none;border-radius:4px;padding:3px 8px;font-size:.72rem;font-family:'Space Mono',monospace;font-weight:700;cursor:pointer;}
+    .modal-hint{font-size:.75rem;color:var(--muted);margin-bottom:20px;}
+    .modal-btn{width:100%;background:var(--accent);color:#000;border:none;padding:14px;border-radius:var(--radius);font-family:'Space Mono',monospace;font-weight:700;font-size:.9rem;cursor:pointer;transition:opacity .2s;}
+    .modal-btn:hover{opacity:.88;}
+    .modal-btn:disabled{opacity:.4;cursor:not-allowed;}
+
+    /* WALLET MODAL */
+    .wallet-option{display:flex;align-items:center;gap:16px;padding:16px 20px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;margin-bottom:12px;transition:border-color .2s,background .2s;}
+    .wallet-option:hover{border-color:var(--accent);background:rgba(240,180,41,0.05);}
+    .wallet-icon{width:36px;height:36px;border-radius:8px;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:1.2rem;}
+    .wallet-name{font-weight:700;font-size:.9rem;}
+    .wallet-desc{font-size:.78rem;color:var(--muted);}
+
+    /* TOAST */
+    .toast{position:fixed;bottom:28px;right:28px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 20px;font-size:.86rem;z-index:9999;transform:translateY(80px);opacity:0;transition:all .3s;max-width:320px;}
+    .toast.show{transform:translateY(0);opacity:1;}
+    .toast.success{border-color:var(--green);color:var(--green);}
+    .toast.error{border-color:var(--accent2);color:var(--accent2);}
+    .toast.info{border-color:var(--accent);color:var(--accent);}
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="index.html" class="logo">Fair<span>Pad</span></a>
+  <div class="nav-links">
+    <a href="index.html">首页</a>
+    <a href="launch.html">发射代币</a>
+    <a href="staking.html" class="active">质押挖矿</a>
+  </div>
+  <button class="connect-btn" id="connectBtn" onclick="openWalletModal()">连接钱包</button>
+</nav>
+
+<!-- PAGE -->
+<div class="page-wrap">
+  <div class="page-title">🏦 质押挖矿</div>
+  <div class="page-sub">输入代币合约地址，查找对应质押池并开始挖矿</div>
+
+  <div class="search-bar">
+    <input id="poolSearch" type="text" placeholder="输入代币合约地址，例如 0x1234...abcd"/>
+    <button onclick="searchPool()">🔍 搜索质押池</button>
+  </div>
+
+  <div class="section-title">质押池列表</div>
+  <div class="pools-grid" id="poolsGrid">
+    <div class="empty-state">
+      <div class="icon">🏦</div>
+      <p>连接钱包后输入代币地址搜索质押池</p>
+    </div>
+  </div>
+</div>
+
+<!-- STAKE MODAL -->
+<div class="modal-overlay" id="stakeModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('stakeModal')">✕</button>
+    <h3 id="modalTitle">质押代币</h3>
+    <p class="modal-sub" id="modalSub">质押代币以获得持续奖励</p>
+    <div class="modal-balance">可用余额：<span id="modalBalance">0</span></div>
+    <div class="input-wrap">
+      <input id="stakeAmountInput" type="number" placeholder="输入质押数量" min="0" step="any"/>
+      <button class="input-max" onclick="setMax()">MAX</button>
+    </div>
+    <p class="modal-hint" id="modalHint">锁定期结束后方可取回</p>
+    <button class="modal-btn" id="confirmStakeBtn" onclick="confirmStake()">确认质押</button>
+  </div>
+</div>
+
+<!-- WALLET MODAL -->
+<div class="modal-overlay" id="walletModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('walletModal')">✕</button>
+    <h3>连接钱包</h3>
+    <p class="modal-sub">选择你的 Web3 钱包</p>
+    <div class="wallet-option" onclick="connectMetaMask()">
+      <div class="wallet-icon">🦊</div>
+      <div><div class="wallet-name">MetaMask</div><div class="wallet-desc">最流行的 Web3 钱包</div></div>
+    </div>
+    <div class="wallet-option" onclick="alert('WalletConnect 即将支持')">
+      <div class="wallet-icon">🔗</div>
+      <div><div class="wallet-name">WalletConnect</div><div class="wallet-desc">支持手机钱包扫码</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="assets/app.js"></script>
+<script>
+// ── ABI（内联，不依赖外部文件）─────────────────────────
+const STAKING_ABI = [
+  "function stake(uint256 amount)",
+  "function unstake(uint256 amount)",
+  "function claimReward()",
+  "function emergencyWithdraw()",
+  "function pendingReward(address) view returns (uint256)",
+  "function userInfo(address) view returns (uint256 amount, uint256 rewardDebt, uint256 stakeTime, uint256 pendingReward)",
+  "function totalStaked() view returns (uint256)",
+  "function rewardPerSecond() view returns (uint256)",
+  "function endTime() view returns (uint256)",
+  "function startTime() view returns (uint256)",
+  "function lockPeriod() view returns (uint256)",
+  "function stakeToken() view returns (address)",
+];
+const ERC20_ABI = [
+  "function name() view returns (string)",
+  "function symbol() view returns (string)",
+  "function decimals() view returns (uint8)",
+  "function balanceOf(address) view returns (uint256)",
+  "function allowance(address,address) view returns (uint256)",
+  "function approve(address,uint256) returns (bool)",
+];
+const FACTORY_ABI_STAKING = [
+  "function tokenStakingPool(address) view returns (address)",
+];
+
+// 部署后在此填入工厂地址
+const FACTORY_ADDRESS = '0x0000000000000000000000000000000000000000';
+
+// ── 状态 ──────────────────────────────────────────────
+let currentPool = null;  // { tokenAddr, poolAddr, symbol, decimals, poolContract, tokenContract }
+
+// ── Toast ─────────────────────────────────────────────
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ── Modal helpers ─────────────────────────────────────
+function openWalletModal() { document.getElementById('walletModal').classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('active'); });
+});
+
+// ── 格式化 ────────────────────────────────────────────
+function fmt(wei, dec = 18, digits = 4) {
+  return parseFloat(ethers.utils.formatUnits(wei, dec)).toLocaleString(undefined, { maximumFractionDigits: digits });
+}
+
+// ── 搜索质押池 ────────────────────────────────────────
+async function searchPool() {
+  const raw = document.getElementById('poolSearch').value.trim();
+  if (!raw) { showToast('请输入代币合约地址', 'error'); return; }
+  if (!ethers.utils.isAddress(raw)) { showToast('地址格式不正确', 'error'); return; }
+  if (!window.signer) { showToast('请先连接钱包', 'error'); return; }
+
+  showToast('搜索中...', 'info');
+
+  try {
+    const provider = window.provider;
+    const factory  = new ethers.Contract(FACTORY_ADDRESS, FACTORY_ABI_STAKING, provider);
+    const poolAddr = await factory.tokenStakingPool(raw);
+
+    if (!poolAddr || poolAddr === ethers.constants.AddressZero) {
+      showToast('未找到对应质押池', 'error'); return;
+    }
+    await renderPoolCard(raw, poolAddr);
+  } catch (err) {
+    console.error(err);
+    showToast('查询失败：' + (err.reason || err.message), 'error');
+  }
+}
+
+// ── 渲染质押池卡片 ─────────────────────────────────────
+async function renderPoolCard(tokenAddr, poolAddr) {
+  const provider = window.provider;
+  const token = new ethers.Contract(tokenAddr, ERC20_ABI, provider);
+  const pool  = new ethers.Contract(poolAddr, STAKING_ABI, provider);
+
+  const [name, symbol, dec, totalStaked, rps, endTime, startTime, lockPeriod, userInfo, pending] =
+    await Promise.all([
+      token.name(),
+      token.symbol(),
+      token.decimals(),
+      pool.totalStaked(),
+      pool.rewardPerSecond(),
+      pool.endTime(),
+      pool.startTime(),
+      pool.lockPeriod(),
+      pool.userInfo(window.userAddress),
+      pool.pendingReward(window.userAddress),
+    ]);
+
+  const now      = Math.floor(Date.now() / 1000);
+  const isLive   = now < endTime.toNumber();
+  const duration = endTime.toNumber() - startTime.toNumber();
+  const elapsed  = Math.max(0, now - startTime.toNumber());
+  const progress = duration > 0 ? Math.min(100, (elapsed / duration) * 100) : 100;
+  const lockDays = lockPeriod.toNumber() / 86400;
+  const unlockTime = userInfo[2].toNumber() + lockPeriod.toNumber();
+  const locked   = now < unlockTime && userInfo[0].gt(0);
+
+  // 移除旧卡片（如果有）
+  const old = document.getElementById('card-' + poolAddr);
+  if (old) old.remove();
+
+  const grid = document.getElementById('poolsGrid');
+  const empty = grid.querySelector('.empty-state');
+  if (empty) empty.remove();
+
+  const card = document.createElement('div');
+  card.className = 'pool-card';
+  card.id = 'card-' + poolAddr;
+  card.innerHTML = `
+    <div class="pool-header">
+      <div class="pool-avatar">${symbol[0]}</div>
+      <div>
+        <div class="pool-name">${name}</div>
+        <div class="pool-symbol">$${symbol} &nbsp;·&nbsp; ${isLive ? '🟢 进行中' : '🔴 已结束'}</div>
+      </div>
+    </div>
+    <div class="pool-stats">
+      <div>
+        <div class="stat-label">总质押量</div>
+        <div class="stat-val">${fmt(totalStaked, dec, 2)}</div>
+      </div>
+      <div>
+        <div class="stat-label">每秒奖励</div>
+        <div class="stat-val hi">${fmt(rps, dec, 6)}</div>
+      </div>
+      <div>
+        <div class="stat-label">我的质押</div>
+        <div class="stat-val">${fmt(userInfo[0], dec, 4)}</div>
+      </div>
+      <div>
+        <div class="stat-label">待领奖励</div>
+        <div class="stat-val hi">${fmt(pending, dec, 6)}</div>
+      </div>
+      <div>
+        <div class="stat-label">锁定期</div>
+        <div class="stat-val">${lockDays > 0 ? lockDays + ' 天' : '无'}</div>
+      </div>
+      <div>
+        <div class="stat-label">锁定状态</div>
+        <div class="stat-val" style="color:${locked ? 'var(--accent2)' : 'var(--green)'}">${locked ? '🔒 锁定中' : '🔓 可取回'}</div>
+      </div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${progress.toFixed(1)}%"></div></div>
+    <div class="pool-actions">
+      <button class="btn-sm btn-stake"   onclick="openStakeModal('${tokenAddr}','${poolAddr}','${symbol}',${dec})">质押</button>
+      <button class="btn-sm btn-claim"   onclick="doClaimReward('${poolAddr}')">领奖励</button>
+      <button class="btn-sm btn-unstake" onclick="doUnstake('${tokenAddr}','${poolAddr}','${symbol}',${dec})">取回</button>
+      <button class="btn-sm btn-emergency" onclick="doEmergency('${poolAddr}')">急撤</button>
+    </div>
+  `;
+  grid.appendChild(card);
+  showToast('✅ 质押池加载完成', 'success');
+}
+
+// ── 打开质押弹窗 ──────────────────────────────────────
+async function openStakeModal(tokenAddr, poolAddr, symbol, dec) {
+  if (!window.signer) { showToast('请先连接钱包', 'error'); return; }
+  const token = new ethers.Contract(tokenAddr, ERC20_ABI, window.provider);
+  const bal = await token.balanceOf(window.userAddress);
+  currentPool = { tokenAddr, poolAddr, symbol, dec, bal };
+
+  document.getElementById('modalTitle').textContent = `质押 ${symbol}`;
+  document.getElementById('modalSub').textContent = '质押代币以获得持续奖励';
+  document.getElementById('modalBalance').textContent = fmt(bal, dec, 4) + ' ' + symbol;
+  document.getElementById('stakeAmountInput').value = '';
+  document.getElementById('confirmStakeBtn').textContent = '确认质押';
+  document.getElementById('confirmStakeBtn').onclick = confirmStake;
+  document.getElementById('stakeModal').classList.add('active');
+}
+
+function setMax() {
+  if (!currentPool) return;
+  const val = parseFloat(ethers.utils.formatUnits(currentPool.bal, currentPool.dec));
+  document.getElementById('stakeAmountInput').value = val;
+}
+
+async function confirmStake() {
+  const amount = document.getElementById('stakeAmountInput').value;
+  if (!amount || parseFloat(amount) <= 0) { showToast('请输入有效数量', 'error'); return; }
+  const btn = document.getElementById('confirmStakeBtn');
+  btn.disabled = true; btn.textContent = '处理中...';
+  try {
+    const amountWei = ethers.utils.parseUnits(amount, currentPool.dec);
+    const token = new ethers.Contract(currentPool.tokenAddr, ERC20_ABI, window.signer);
+    const pool  = new ethers.Contract(currentPool.poolAddr, STAKING_ABI, window.signer);
+    // 检查授权
+    const allowance = await token.allowance(window.userAddress, currentPool.poolAddr);
+    if (allowance.lt(amountWei)) {
+      showToast('授权中...', 'info');
+      const appTx = await token.approve(currentPool.poolAddr, ethers.constants.MaxUint256);
+      await appTx.wait();
+    }
+    showToast('质押中...', 'info');
+    const tx = await pool.stake(amountWei);
+    await tx.wait();
+    showToast(`✅ 成功质押 ${amount} ${currentPool.symbol}`, 'success');
+    closeModal('stakeModal');
+    await renderPoolCard(currentPool.tokenAddr, currentPool.poolAddr);
+  } catch (err) {
+    showToast('❌ ' + (err.reason || err.message), 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '确认质押';
+  }
+}
+
+// ── 取回质押 ──────────────────────────────────────────
+async function doUnstake(tokenAddr, poolAddr, symbol, dec) {
+  if (!window.signer) { showToast('请先连接钱包', 'error'); return; }
+  const pool = new ethers.Contract(poolAddr, STAKING_ABI, window.provider);
+  const info = await pool.userInfo(window.userAddress);
+  currentPool = { tokenAddr, poolAddr, symbol, dec, bal: info[0] };
+
+  document.getElementById('modalTitle').textContent = `取回 ${symbol}`;
+  document.getElementById('modalSub').textContent = '输入要取回的数量（留空则全部取回）';
+  document.getElementById('modalBalance').textContent = '已质押：' + fmt(info[0], dec, 4) + ' ' + symbol;
+  document.getElementById('stakeAmountInput').value = '';
+  document.getElementById('confirmStakeBtn').textContent = '确认取回';
+  document.getElementById('confirmStakeBtn').onclick = async () => {
+    const input = document.getElementById('stakeAmountInput').value;
+    const amount = input ? ethers.utils.parseUnits(input, dec) : info[0];
+    const btn = document.getElementById('confirmStakeBtn');
+    btn.disabled = true; btn.textContent = '处理中...';
+    try {
+      const poolW = new ethers.Contract(poolAddr, STAKING_ABI, window.signer);
+      showToast('取回中...', 'info');
+      const tx = await poolW.unstake(amount);
+      await tx.wait();
+      showToast('✅ 取回成功！', 'success');
+      closeModal('stakeModal');
+      await renderPoolCard(tokenAddr, poolAddr);
+    } catch (err) {
+      showToast('❌ ' + (err.reason || err.message), 'error');
+    } finally { btn.disabled = false; btn.textContent = '确认取回'; }
+  };
+  document.getElementById('stakeModal').classList.add('active');
+}
+
+// ── 领取奖励 ──────────────────────────────────────────
+async function doClaimReward(poolAddr) {
+  if (!window.signer) { showToast('请先连接钱包', 'error'); return; }
+  try {
+    const pool = new ethers.Contract(poolAddr, STAKING_ABI, window.signer);
+    showToast('领取中...', 'info');
+    const tx = await pool.claimReward();
+    await tx.wait();
+    showToast('✅ 奖励已到账！', 'success');
+    // 刷新卡片（需要 tokenAddr）
+    const card = document.getElementById('card-' + poolAddr);
+    if (card) {
+      const poolC = new ethers.Contract(poolAddr, STAKING_ABI, window.provider);
+      const stakeTokenAddr = await poolC.stakeToken();
+      await renderPoolCard(stakeTokenAddr, poolAddr);
+    }
+  } catch (err) {
+    showToast('❌ ' + (err.reason || err.message), 'error');
+  }
+}
+
+// ── 紧急撤出 ──────────────────────────────────────────
+async function doEmergency(poolAddr) {
+  if (!window.signer) { showToast('请先连接钱包', 'error'); return; }
+  if (!confirm('紧急撤出将放弃所有未领取奖励，确认继续？')) return;
+  try {
+    const pool = new ethers.Contract(poolAddr, STAKING_ABI, window.signer);
+    showToast('紧急撤出中...', 'info');
+    const tx = await pool.emergencyWithdraw();
+    await tx.wait();
+    showToast('✅ 已紧急撤出，奖励已清零', 'success');
+  } catch (err) {
+    showToast('❌ ' + (err.reason || err.message), 'error');
+  }
+}
+
+// ── 钱包连接回调 ──────────────────────────────────────
+window.onConnected = function() {
+  updateConnectBtn();
+  showToast('🦊 钱包已连接', 'success');
+};
+</script>
+</body>
+</html>

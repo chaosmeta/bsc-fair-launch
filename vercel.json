@@ -1,11 +1,12 @@
 {
   "version": 2,
-  "public": true,
+  "cleanUrls": true,
+  "trailingSlash": false,
   "outputDirectory": "frontend",
-  "routes": [
-    { "src": "/assets/(.*)", "dest": "/assets/$1" },
-    { "src": "/launch",  "dest": "/launch.html" },
-    { "src": "/staking", "dest": "/staking.html" },
-    { "src": "/",        "dest": "/index.html" }
+  "rewrites": [
+    { "source": "/assets/:path*", "destination": "/assets/:path*" },
+    { "source": "/launch",        "destination": "/launch.html" },
+    { "source": "/staking",       "destination": "/staking.html" },
+    { "source": "/",              "destination": "/index.html" }
   ]
 }
