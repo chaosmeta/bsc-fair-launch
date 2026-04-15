@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>发射代币 — FairPad</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:#0a0a0f;--surface:#111118;--border:#1e1e2e;
+      --accent:#f0b429;--accent2:#e55b4d;--text:#e8e8f0;--muted:#6b6b80;
+      --green:#22c55e;--radius:12px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;}
+    nav{display:flex;align-items:center;justify-content:space-between;padding:18px 40px;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(10,10,15,.92);backdrop-filter:blur(12px);z-index:100;}
+    .logo{font-size:1.5rem;font-weight:800;letter-spacing:-1px;text-decoration:none;color:var(--text);}
+    .logo span{color:var(--accent);}
+    .nav-links{display:flex;gap:32px;}
+    .nav-links a{color:var(--muted);text-decoration:none;font-size:.9rem;font-weight:700;letter-spacing:.05em;transition:color .2s;}
+    .nav-links a:hover,.nav-links a.active{color:var(--text);}
+    .connect-btn{background:var(--accent);color:#000;border:none;padding:10px 22px;border-radius:8px;font-family:'Space Mono',monospace;font-size:.8rem;cursor:pointer;font-weight:700;}
+
+    .page-header{padding:60px 40px 40px;max-width:1100px;margin:0 auto;}
+    .page-header h1{font-size:2.4rem;font-weight:800;margin-bottom:8px;}
+    .page-header p{color:var(--muted);}
+
+    .launch-layout{display:grid;grid-template-columns:1fr 380px;gap:32px;max-width:1100px;margin:0 auto;padding:0 40px 80px;}
+    @media(max-width:900px){.launch-layout{grid-template-columns:1fr;}}
+
+    /* FORM */
+    .form-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:36px;}
+    .form-section{margin-bottom:36px;}
+    .form-section-title{font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-family:'Space Mono',monospace;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+    .form-group{margin-bottom:16px;}
+    .form-group label{display:block;font-size:.82rem;font-weight:700;margin-bottom:8px;color:var(--muted);}
+    .form-group input,.form-group select{
+      width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;
+      padding:12px 14px;color:var(--text);font-family:'Syne',sans-serif;font-size:.9rem;
+      outline:none;transition:border-color .2s;
+    }
+    .form-group input:focus,.form-group select:focus{border-color:var(--accent);}
+    .form-group input::placeholder{color:var(--muted);}
+    .tax-input-wrap{position:relative;}
+    .tax-input-wrap input{padding-right:40px;}
+    .tax-unit{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.85rem;}
+
+    /* TOGGLES */
+    .feature-toggles{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;}
+    .toggle-card{
+      background:var(--bg);border:1px solid var(--border);border-radius:10px;
+      padding:16px;cursor:pointer;transition:border-color .2s,background .2s;
+      display:flex;align-items:center;gap:12px;
+    }
+    .toggle-card.active{border-color:var(--accent);background:rgba(240,180,41,0.06);}
+    .toggle-icon{font-size:1.4rem;}
+    .toggle-label{font-size:.88rem;font-weight:700;}
+    .toggle-check{margin-left:auto;width:18px;height:18px;border:2px solid var(--border);border-radius:4px;transition:background .2s,border-color .2s;flex-shrink:0;}
+    .toggle-card.active .toggle-check{background:var(--accent);border-color:var(--accent);}
+
+    /* TAX SLIDERS */
+    .tax-config{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px;}
+    .tax-config-title{font-size:.82rem;color:var(--muted);margin-bottom:16px;font-family:'Space Mono',monospace;}
+    .tax-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+    .tax-row label{font-size:.82rem;width:70px;flex-shrink:0;}
+    .tax-row input[type=range]{flex:1;accent-color:var(--accent);}
+    .tax-val{font-family:'Space Mono',monospace;font-size:.8rem;color:var(--accent);width:40px;text-align:right;}
+    .tax-total{display:flex;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:.82rem;}
+    .tax-total-val{font-family:'Space Mono',monospace;font-weight:700;}
+    .tax-total-val.warn{color:var(--accent2);}
+
+    /* SUBMIT */
+    .submit-btn{
+      width:100%;background:var(--accent);color:#000;border:none;padding:16px;
+      border-radius:var(--radius);font-family:'Space Mono',monospace;font-weight:700;
+      font-size:1rem;cursor:pointer;transition:opacity .2s,transform .15s;margin-top:8px;
+    }
+    .submit-btn:hover{opacity:.9;transform:translateY(-2px);}
+    .submit-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+
+    /* PREVIEW CARD */
+    .preview-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;position:sticky;top:90px;}
+    .preview-title{font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-family:'Space Mono',monospace;margin-bottom:20px;}
+    .preview-token-name{font-size:1.8rem;font-weight:800;margin-bottom:4px;}
+    .preview-token-symbol{font-family:'Space Mono',monospace;color:var(--muted);margin-bottom:24px;}
+    .preview-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:.85rem;}
+    .preview-row:last-of-type{border:none;}
+    .preview-label{color:var(--muted);}
+    .preview-val{font-family:'Space Mono',monospace;font-weight:700;}
+    .preview-features{display:flex;flex-wrap:wrap;gap:6px;margin:16px 0;}
+    .feat-pill{padding:4px 12px;border-radius:100px;font-size:.72rem;font-family:'Space Mono',monospace;font-weight:700;}
+    .cost-box{background:rgba(240,180,41,0.08);border:1px solid rgba(240,180,41,0.2);border-radius:10px;padding:16px;margin-top:20px;text-align:center;}
+    .cost-label{font-size:.8rem;color:var(--muted);margin-bottom:4px;}
+    .cost-amount{font-size:1.6rem;font-weight:800;color:var(--accent);font-family:'Space Mono',monospace;}
+
+    /* TOAST */
+    .toast{position:fixed;bottom:32px;right:32px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 20px;font-size:.88rem;z-index:9999;transform:translateY(100px);opacity:0;transition:all .3s;}
+    .toast.show{transform:translateY(0);opacity:1;}
+    .toast.success{border-color:var(--green);color:var(--green);}
+    .toast.error{border-color:var(--accent2);color:var(--accent2);}
+  </style>
+</head>
+<body>
+<nav>
+  <a href="index.html" class="logo">Fair<span>Pad</span></a>
+  <div class="nav-links">
+    <a href="index.html">首页</a>
+    <a href="launch.html" class="active">发射代币</a>
+    <a href="staking.html">质押挖矿</a>
+  </div>
+  <button class="connect-btn" id="connectBtn" onclick="openWalletModal()">连接钱包</button>
+</nav>
+
+<div class="page-header">
+  <h1>🚀 发射你的代币</h1>
+  <p>配置代币参数，选择功能，一键部署到 BSC 链</p>
+</div>
+
+<div class="launch-layout">
+  <!-- FORM -->
+  <div class="form-card">
+
+    <!-- 基础信息 -->
+    <div class="form-section">
+      <div class="form-section-title">基础信息</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>代币名称</label>
+          <input id="tokenName" type="text" placeholder="My Token" oninput="updatePreview()"/>
+        </div>
+        <div class="form-group">
+          <label>代币符号</label>
+          <input id="tokenSymbol" type="text" placeholder="MTK" oninput="updatePreview()"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>总供应量</label>
+          <input id="totalSupply" type="number" placeholder="1000000000" value="1000000000" oninput="updatePreview()"/>
+        </div>
+        <div class="form-group">
+          <label>营销钱包（留空=发射者）</label>
+          <input id="marketingWallet" type="text" placeholder="0x..."/>
+        </div>
+      </div>
+    </div>
+
+    <!-- 功能选择 -->
+    <div class="form-section">
+      <div class="form-section-title">功能选择</div>
+      <div class="feature-toggles">
+        <div class="toggle-card" id="toggle-burn" onclick="toggleFeature('burn')">
+          <span class="toggle-icon">🔥</span>
+          <div>
+            <div class="toggle-label">燃烧</div>
+          </div>
+          <div class="toggle-check"></div>
+        </div>
+        <div class="toggle-card" id="toggle-dividend" onclick="toggleFeature('dividend')">
+          <span class="toggle-icon">💰</span>
+          <div><div class="toggle-label">分红</div></div>
+          <div class="toggle-check"></div>
+        </div>
+        <div class="toggle-card" id="toggle-liquidity" onclick="toggleFeature('liquidity')">
+          <span class="toggle-icon">💧</span>
+          <div><div class="toggle-label">自动回流</div></div>
+          <div class="toggle-check"></div>
+        </div>
+        <div class="toggle-card" id="toggle-staking" onclick="toggleFeature('staking')">
+          <span class="toggle-icon">🏦</span>
+          <div><div class="toggle-label">质押挖矿</div></div>
+          <div class="toggle-check"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 税率配置 -->
+    <div class="form-section">
+      <div class="form-section-title">税率配置（买入）</div>
+      <div class="tax-config">
+        <div class="tax-config-title">买入税率</div>
+        <div class="tax-row"><label>🔥 燃烧</label><input type="range" id="buyBurn" min="0" max="10" value="0" step="0.5" oninput="updateTax('buy')"><span class="tax-val" id="buyBurnVal">0%</span></div>
+        <div class="tax-row"><label>💰 分红</label><input type="range" id="buyDividend" min="0" max="10" value="0" step="0.5" oninput="updateTax('buy')"><span class="tax-val" id="buyDividendVal">0%</span></div>
+        <div class="tax-row"><label>💧 回流</label><input type="range" id="buyLiquidity" min="0" max="10" value="0" step="0.5" oninput="updateTax('buy')"><span class="tax-val" id="buyLiquidityVal">0%</span></div>
+        <div class="tax-row"><label>📢 营销</label><input type="range" id="buyMarketing" min="0" max="5" value="0" step="0.5" oninput="updateTax('buy')"><span class="tax-val" id="buyMarketingVal">0%</span></div>
+        <div class="tax-total"><span>买入总税率</span><span class="tax-total-val" id="buyTotal">0%</span></div>
+      </div>
+      <div class="tax-config">
+        <div class="tax-config-title">卖出税率</div>
+        <div class="tax-row"><label>🔥 燃烧</label><input type="range" id="sellBurn" min="0" max="10" value="0" step="0.5" oninput="updateTax('sell')"><span class="tax-val" id="sellBurnVal">0%</span></div>
+        <div class="tax-row"><label>💰 分红</label><input type="range" id="sellDividend" min="0" max="10" value="0" step="0.5" oninput="updateTax('sell')"><span class="tax-val" id="sellDividendVal">0%</span></div>
+        <div class="tax-row"><label>💧 回流</label><input type="range" id="sellLiquidity" min="0" max="10" value="0" step="0.5" oninput="updateTax('sell')"><span class="tax-val" id="sellLiquidityVal">0%</span></div>
+        <div class="tax-row"><label>📢 营销</label><input type="range" id="sellMarketing" min="0" max="5" value="0" step="0.5" oninput="updateTax('sell')"><span class="tax-val" id="sellMarketingVal">0%</span></div>
+        <div class="tax-total"><span>卖出总税率</span><span class="tax-total-val" id="sellTotal">0%</span></div>
+      </div>
+    </div>
+
+    <!-- 安全设置 -->
+    <div class="form-section">
+      <div class="form-section-title">安全设置</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>最大钱包持仓 % (0=不限)</label>
+          <div class="tax-input-wrap">
+            <input id="maxWallet" type="number" min="0" max="100" value="0" placeholder="0"/>
+            <span class="tax-unit">%</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>交易冷却时间（秒）</label>
+          <input id="cooldown" type="number" min="0" value="0" placeholder="0"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>防机器人时长（秒）</label>
+          <input id="antiBotDuration" type="number" min="0" value="60" placeholder="60"/>
+        </div>
+        <div class="form-group">
+          <label>初期最大单笔买入 %</label>
+          <div class="tax-input-wrap">
+            <input id="antiBotMaxBuy" type="number" min="0" max="100" value="1" placeholder="1"/>
+            <span class="tax-unit">%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 质押配置（条件显示） -->
+    <div class="form-section" id="stakingConfig" style="display:none">
+      <div class="form-section-title">质押池配置</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>奖励代币总量</label>
+          <input id="stakingReward" type="number" placeholder="100000000" value="100000000"/>
+        </div>
+        <div class="form-group">
+          <label>质押池持续时间（天）</label>
+          <input id="stakingDuration" type="number" placeholder="30" value="30"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>锁定期（天）</label>
+        <input id="stakingLock" type="number" placeholder="0" value="0"/>
+      </div>
+    </div>
+
+    <button class="submit-btn" id="launchBtn" onclick="handleLaunch()">🚀 发射代币 (0.05 BNB)</button>
+  </div>
+
+  <!-- PREVIEW -->
+  <div>
+    <div class="preview-card">
+      <div class="preview-title">实时预览</div>
+      <div class="preview-token-name" id="previewName">My Token</div>
+      <div class="preview-token-symbol" id="previewSymbol">$MTK</div>
+
+      <div class="preview-features" id="previewFeatures"></div>
+
+      <div class="preview-row">
+        <span class="preview-label">总供应量</span>
+        <span class="preview-val" id="previewSupply">1,000,000,000</span>
+      </div>
+      <div class="preview-row">
+        <span class="preview-label">买入税</span>
+        <span class="preview-val" id="previewBuyTax">0%</span>
+      </div>
+      <div class="preview-row">
+        <span class="preview-label">卖出税</span>
+        <span class="preview-val" id="previewSellTax">0%</span>
+      </div>
+      <div class="preview-row">
+        <span class="preview-label">最大钱包</span>
+        <span class="preview-val" id="previewMaxWallet">不限</span>
+      </div>
+      <div class="preview-row">
+        <span class="preview-label">防机器人</span>
+        <span class="preview-val" id="previewAntiBot">60秒</span>
+      </div>
+
+      <div class="cost-box">
+        <div class="cost-label">发射费用</div>
+        <div class="cost-amount">0.05 BNB</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="assets/app.js"></script>
+<script>
+  const features = { burn: false, dividend: false, liquidity: false, staking: false };
+  const featureColors = { burn:'#e55b4d', dividend:'#f0b429', liquidity:'#22c55e', staking:'#a78bfa' };
+  const featureLabels = { burn:'🔥 燃烧', dividend:'💰 分红', liquidity:'💧 回流', staking:'🏦 质押' };
+
+  function toggleFeature(name) {
+    features[name] = !features[name];
+    document.getElementById('toggle-' + name).classList.toggle('active', features[name]);
+    if (name === 'staking') {
+      document.getElementById('stakingConfig').style.display = features.staking ? 'block' : 'none';
+    }
+    updatePreview();
+  }
+
+  function updateTax(side) {
+    const fields = ['Burn','Dividend','Liquidity','Marketing'];
+    let total = 0;
+    fields.forEach(f => {
+      const val = parseFloat(document.getElementById(side + f).value) || 0;
+      document.getElementById(side + f + 'Val').textContent = val + '%';
+      total += val;
+    });
+    const el = document.getElementById(side + 'Total');
+    el.textContent = total.toFixed(1) + '%';
+    el.className = 'tax-total-val' + (total > 20 ? ' warn' : '');
+    updatePreview();
+  }
+
+  function updatePreview() {
+    const name = document.getElementById('tokenName').value || 'My Token';
+    const sym  = document.getElementById('tokenSymbol').value || 'MTK';
+    const sup  = parseInt(document.getElementById('totalSupply').value) || 1000000000;
+    const mw   = parseInt(document.getElementById('maxWallet').value) || 0;
+    const abd  = parseInt(document.getElementById('antiBotDuration').value) || 0;
+
+    document.getElementById('previewName').textContent = name;
+    document.getElementById('previewSymbol').textContent = '$' + sym.toUpperCase();
+    document.getElementById('previewSupply').textContent = sup.toLocaleString();
+    document.getElementById('previewMaxWallet').textContent = mw > 0 ? mw + '%' : '不限';
+    document.getElementById('previewAntiBot').textContent = abd > 0 ? abd + '秒' : '关闭';
+    document.getElementById('previewBuyTax').textContent = document.getElementById('buyTotal').textContent;
+    document.getElementById('previewSellTax').textContent = document.getElementById('sellTotal').textContent;
+
+    const pillsHtml = Object.entries(features)
+      .filter(([,v]) => v)
+      .map(([k]) => `<span class="feat-pill" style="background:${featureColors[k]}22;color:${featureColors[k]};border:1px solid ${featureColors[k]}44">${featureLabels[k]}</span>`)
+      .join('');
+    document.getElementById('previewFeatures').innerHTML = pillsHtml;
+  }
+
+  function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.className = `toast ${type} show`;
+    setTimeout(() => t.classList.remove('show'), 3500);
+  }
+
+  async function handleLaunch() {
+    if (!window.userAddress) {
+      showToast('请先连接钱包', 'error'); return;
+    }
+    const name = document.getElementById('tokenName').value.trim();
+    const symbol = document.getElementById('tokenSymbol').value.trim();
+    if (!name || !symbol) { showToast('请填写代币名称和符号', 'error'); return; }
+
+    const btn = document.getElementById('launchBtn');
+    btn.disabled = true; btn.textContent = '⏳ 部署中...';
+
+    try {
+      const params = buildLaunchParams();
+      const fee = window.ethers.utils.parseEther('0.05');
+      const tx = await window.factoryContract.createToken(params, { value: fee });
+      showToast('交易已提交，等待确认...', 'success');
+      const receipt = await tx.wait();
+      const event = receipt.events?.find(e => e.event === 'TokenCreated');
+      const tokenAddr = event?.args?.token;
+      showToast(`✅ 发射成功！合约: ${tokenAddr?.slice(0,10)}...`, 'success');
+      btn.textContent = '✅ 发射成功！';
+    } catch (err) {
+      console.error(err);
+      showToast('❌ ' + (err.reason || err.message || '发射失败'), 'error');
+      btn.disabled = false; btn.textContent = '🚀 发射代币 (0.05 BNB)';
+    }
+  }
+
+  function buildLaunchParams() {
+    const toBps = v => Math.round(parseFloat(v) * 100);
+    return {
+      name: document.getElementById('tokenName').value,
+      symbol: document.getElementById('tokenSymbol').value.toUpperCase(),
+      totalSupply: parseInt(document.getElementById('totalSupply').value),
+      buyBurn:      toBps(document.getElementById('buyBurn').value),
+      buyDividend:  toBps(document.getElementById('buyDividend').value),
+      buyLiquidity: toBps(document.getElementById('buyLiquidity').value),
+      buyMarketing: toBps(document.getElementById('buyMarketing').value),
+      sellBurn:      toBps(document.getElementById('sellBurn').value),
+      sellDividend:  toBps(document.getElementById('sellDividend').value),
+      sellLiquidity: toBps(document.getElementById('sellLiquidity').value),
+      sellMarketing: toBps(document.getElementById('sellMarketing').value),
+      enableBurn:      features.burn,
+      enableDividend:  features.dividend,
+      enableLiquidity: features.liquidity,
+      enableStaking:   features.staking,
+      maxWalletPct:  parseInt(document.getElementById('maxWallet').value) || 0,
+      cooldown:      parseInt(document.getElementById('cooldown').value) || 0,
+      antiBot:       parseInt(document.getElementById('antiBotDuration').value) > 0,
+      antiBotDuration: parseInt(document.getElementById('antiBotDuration').value) || 60,
+      antiBotMaxBuyPct: parseInt(document.getElementById('antiBotMaxBuy').value) || 1,
+      marketingWallet: document.getElementById('marketingWallet').value || '0x0000000000000000000000000000000000000000',
+      stakingRewardPerSecond: features.staking
+        ? Math.floor(parseInt(document.getElementById('stakingReward').value) * 1e18 / (parseInt(document.getElementById('stakingDuration').value) * 86400))
+        : 0,
+      stakingDuration: (parseInt(document.getElementById('stakingDuration').value) || 30) * 86400,
+      stakingLockPeriod: (parseInt(document.getElementById('stakingLock').value) || 0) * 86400,
+      stakingRewardAmount: features.staking ? parseInt(document.getElementById('stakingReward').value) : 0,
+    };
+  }
+
+  updatePreview();
+  ['buyBurn','buyDividend','buyLiquidity','buyMarketing','sellBurn','sellDividend','sellLiquidity','sellMarketing']
+    .forEach(id => { updateTax(id.startsWith('buy') ? 'buy' : 'sell'); });
+</script>
+</body>
+</html>
